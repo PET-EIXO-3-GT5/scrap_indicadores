@@ -1,0 +1,8 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/pet-eixo-3-gt5/scrap_indicadores:local
+    container_name: scrap_indicadores
+    restart: unless-stopped
