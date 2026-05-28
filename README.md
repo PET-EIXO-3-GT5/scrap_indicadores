@@ -13,7 +13,7 @@ Projeto Python com `uv` usando `PySUS` (fonte GitHub) e pipeline de CI/CD para G
 ```bash
 cd scrap_indicadores
 uv sync
-uv run main.py
+PYTHONPATH=src uv run python -m scrap_indicadores.main
 ```
 
 ## Rodar com Docker

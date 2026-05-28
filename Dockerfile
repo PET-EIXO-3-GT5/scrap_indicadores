@@ -1,6 +1,7 @@
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 WORKDIR /app/scrap_indicadores
+ENV PYTHONPATH=/app/scrap_indicadores/src
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends git \
@@ -13,4 +14,4 @@ RUN uv sync --frozen --no-dev
 # Copia o codigo da aplicacao.
 COPY scrap_indicadores/ ./
 
-CMD ["uv", "run", "main.py"]
+CMD ["uv", "run", "python", "-m", "scrap_indicadores.main"]

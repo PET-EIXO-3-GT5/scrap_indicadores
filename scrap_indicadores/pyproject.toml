@@ -5,8 +5,22 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "httpx>=0.28.1",
+    "pandas>=2.3.3",
+    "pyarrow>=24.0.0",
     "pysus",
 ]
+
+[dependency-groups]
+dev = [
+    "jupyter>=1.1.1",
+    "pytest>=9.0.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["test_picos_*.py"]
+pythonpath = ["src"]
 
 [tool.uv.sources]
 pysus = { git = "https://github.com/AlertaDengue/PySUS.git" }
