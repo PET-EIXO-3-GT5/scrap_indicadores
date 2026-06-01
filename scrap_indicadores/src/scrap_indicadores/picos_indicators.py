@@ -123,9 +123,20 @@ def calculate_pni_indicators(
     df: pd.DataFrame,
     picos_code: str = PICOS_CODE,
 ) -> dict[str, object]:
-    df_picos, municipality_column = filter_picos(df, ["CODMUNRES", "CO_MUNICIP"], picos_code)
+    df_picos, municipality_column = filter_picos(df, ["CODMUNRES", "CO_MUNICIP", "MUNIC_RES", "MUNRES"], picos_code)
     return {
         "registros_vacinacao": int(len(df_picos)),
+        "coluna_municipio": municipality_column,
+    }
+
+
+def calculate_sinasc_indicators(
+    df: pd.DataFrame,
+    picos_code: str = PICOS_CODE,
+) -> dict[str, object]:
+    df_picos, municipality_column = filter_picos(df, ["CODMUNRES", "CODMUNNASC"], picos_code)
+    return {
+        "nascidos_vivos": int(len(df_picos)),
         "coluna_municipio": municipality_column,
     }
 
@@ -135,14 +146,27 @@ def calculate_picos_indicators(
     df_sih: pd.DataFrame,
     df_sinan: pd.DataFrame,
     df_pni: pd.DataFrame,
+    df_sinasc: pd.DataFrame | None = None,
     picos_code: str = PICOS_CODE,
 ) -> dict[str, dict[str, object]]:
-    return {
+    indicators = {
         "sim": calculate_sim_indicators(df_sim, picos_code),
         "sih": calculate_sih_indicators(df_sih, picos_code),
         "sinan": calculate_sinan_indicators(df_sinan, picos_code),
         "pni": calculate_pni_indicators(df_pni, picos_code),
     }
+
+    if df_sinasc is not None:
+        indicators["sinasc"] = calculate_sinasc_indicators(df_sinasc, picos_code)
+        
+        nascidos = indicators["sinasc"]["nascidos_vivos"]
+        doses = indicators["pni"]["registros_vacinacao"]
+        
+        # Calculo basico de cobertura vacinal infantil aproximada
+        indicador_cobertura = round((doses / nascidos) * 100, 2) if nascidos and nascidos > 0 else 0.0
+        indicators["pni"]["cobertura_vacinal_estimada_porcentagem"] = indicador_cobertura
+
+    return indicators
 
 
 def _count_values(df: pd.DataFrame, column: str, values: Iterable[str]) -> int:

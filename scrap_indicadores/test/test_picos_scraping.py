@@ -115,7 +115,8 @@ def test_scraping_filter_keeps_only_related_remote_files_before_download():
             "sim",
             state="PI",
             year=2024,
-            filter_fn=lambda remote_file: remote_file.path.name.startswith("DOPI"),
+            filter_fn=lambda remote_file: remote_file.path.name.startswith(
+                "DOPI"),
         )
     )
 
@@ -157,7 +158,8 @@ def test_all_scraped_dataset_fixtures_match_expected_picos_csvs():
     datasets = [
         ("sim_raw.csv", "sim_picos_expected.csv", ["CODMUNRES"]),
         ("sih_raw.csv", "sih_picos_expected.csv", ["MUNIC_RES"]),
-        ("sinan_raw.csv", "sinan_picos_expected.csv", ["ID_MN_RESI", "CO_MUN_RES"]),
+        ("sinan_raw.csv", "sinan_picos_expected.csv",
+         ["ID_MN_RESI", "CO_MUN_RES"]),
         ("pni_raw.csv", "pni_picos_expected.csv", ["CODMUNRES", "CO_MUNICIP"]),
     ]
 

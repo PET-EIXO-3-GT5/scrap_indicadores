@@ -126,9 +126,12 @@ def test_calculate_picos_indicators_groups_all_datasets():
         df_sih=pd.DataFrame({"MUNIC_RES": ["220800"], "IDADE": ["8"]}),
         df_sinan=pd.DataFrame({"ID_MN_RESI": ["220800"]}),
         df_pni=pd.DataFrame({"CODMUNRES": ["220800"]}),
+        df_sinasc=pd.DataFrame({"CODMUNRES": ["220800", "220800"]}),
     )
 
     assert result["sim"]["obitos_total"] == 1
     assert result["sih"]["internacoes_total"] == 1
     assert result["sinan"]["casos_dengue_notificados"] == 1
     assert result["pni"]["registros_vacinacao"] == 1
+    assert result["sinasc"]["nascidos_vivos"] == 2
+    assert result["pni"]["cobertura_vacinal_estimada_porcentagem"] == 50.0
