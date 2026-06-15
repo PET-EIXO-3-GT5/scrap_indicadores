@@ -16,36 +16,38 @@ async def test_01_fetch_dados(shared_data_dir):
         # Executa as chamadas de um mesmo grupo de forma sequencial
         # para não embaralhar a sessão do servidor Tabnet (CGI).
         for name, kwargs in tasks:
-            for attempt in range(3):
+            for attempt in range(5):
                 try:
                     await scraper.download_csv(**kwargs)
                     break
                 except Exception as e:
-                    if attempt == 2:
+                    if attempt == 4:
                         pytest.fail(f"Falha ao baixar {name}: {e}")
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(5) # wait longer between retries
 
+    picos_filter = "220800 PICOS"
+    
     group_sim = [
         ("sim_geral", dict(
             url="http://tabnet.datasus.gov.br/cgi/deftohtm.exe?sim/cnv/obt10pi.def",
             output_path=os.path.join(shared_data_dir, "sim_geral.csv"),
-            linha="Município", coluna="--Não-Ativa--", incremento="Óbitos_p/Residênc", periodos="2024"
+            linha="Ano/mês do óbito", coluna="--Não-Ativa--", incremento="Óbitos_p/Residênc", periodos="2024", filtros={"SMunicípio": picos_filter}
         )),
         ("sim_infantil", dict(
             url="http://tabnet.datasus.gov.br/cgi/deftohtm.exe?sim/cnv/inf10pi.def",
             output_path=os.path.join(shared_data_dir, "sim_infantil.csv"),
-            linha="Município", coluna="--Não-Ativa--", incremento="Óbitos_p/Residênc", periodos="2024"
+            linha="Ano/mês do óbito", coluna="--Não-Ativa--", incremento="Óbitos_p/Residênc", periodos="2024", filtros={"SMunicípio": picos_filter}
         )),
         ("sim_materno", dict(
             url="http://tabnet.datasus.gov.br/cgi/deftohtm.exe?sim/cnv/mat10pi.def",
             output_path=os.path.join(shared_data_dir, "sim_materno.csv"),
-            linha="Município", coluna="--Não-Ativa--", incremento="Óbitos_p/Residênc", periodos="2024"
+            linha="Ano/mês do óbito", coluna="--Não-Ativa--", incremento="Óbitos_maternos", periodos="2023", filtros={"SMunicípio": picos_filter}
         )),
         ("sim_fertil", dict(
             url="http://tabnet.datasus.gov.br/cgi/deftohtm.exe?sim/cnv/obt10pi.def",
             output_path=os.path.join(shared_data_dir, "sim_fertil.csv"),
-            linha="Município", coluna="Faixa Etária", incremento="Óbitos_p/Residênc", periodos="2024",
-            filtros={"Sexo": "Feminino"}
+            linha="Ano/mês do óbito", coluna="Faixa Etária", incremento="Óbitos_p/Residênc", periodos="2024",
+            filtros={"SMunicípio": picos_filter, "Sexo": "Feminino"}
         ))
     ]
 
@@ -53,13 +55,13 @@ async def test_01_fetch_dados(shared_data_dir):
         ("sih_geral", dict(
             url="http://tabnet.datasus.gov.br/cgi/deftohtm.exe?sih/cnv/nrpi.def",
             output_path=os.path.join(shared_data_dir, "sih_geral.csv"),
-            linha="Município", coluna="--Não-Ativa--", incremento="Internações", periodos="2024"
+            linha="Ano/mês processamento", coluna="--Não-Ativa--", incremento="Internações", periodos="2024", filtros={"SMunicípio": picos_filter}
         )),
         ("sih_infantil_causas", dict(
             url="http://tabnet.datasus.gov.br/cgi/deftohtm.exe?sih/cnv/nrpi.def",
             output_path=os.path.join(shared_data_dir, "sih_infantil_causas.csv"),
-            linha="Município", coluna="Capítulo CID-10", incremento="Internações", periodos="2024",
-            filtros={"SFaixa_Etária_1": ["Menor 1 ano", "1 a 4 anos", "5 a 9 anos"]}
+            linha="Ano/mês processamento", coluna="Capítulo CID-10", incremento="Internações", periodos="2024", 
+            filtros={"SMunicípio": picos_filter, "SFaixa_Etária_1": ["Menor 1 ano", "1 a 4 anos", "5 a 9 anos"]}
         ))
     ]
 
@@ -67,22 +69,22 @@ async def test_01_fetch_dados(shared_data_dir):
         ("sinan_classificacao", dict(
             url="http://tabnet.datasus.gov.br/cgi/deftohtm.exe?sinannet/cnv/denguebpi.def",
             output_path=os.path.join(shared_data_dir, "sinan_classificacao.csv"),
-            linha="Município de notificação", coluna="Class. Final", incremento="Casos_Prováveis", periodos="2024"
+            linha="Mês notificação", coluna="Class. Final", incremento="Casos_Prováveis", periodos="2024", filtros={"SMunicípio_de_notificação": picos_filter}
         )),
         ("sinan_criterio", dict(
             url="http://tabnet.datasus.gov.br/cgi/deftohtm.exe?sinannet/cnv/denguebpi.def",
             output_path=os.path.join(shared_data_dir, "sinan_criterio.csv"),
-            linha="Município de notificação", coluna="Criterio conf.", incremento="Casos_Prováveis", periodos="2024"
+            linha="Mês notificação", coluna="Criterio conf.", incremento="Casos_Prováveis", periodos="2024", filtros={"SMunicípio_de_notificação": picos_filter}
         )),
         ("sinan_evolucao", dict(
             url="http://tabnet.datasus.gov.br/cgi/deftohtm.exe?sinannet/cnv/denguebpi.def",
             output_path=os.path.join(shared_data_dir, "sinan_evolucao.csv"),
-            linha="Município de notificação", coluna="Evolução", incremento="Casos_Prováveis", periodos="2024"
+            linha="Mês notificação", coluna="Evolução", incremento="Casos_Prováveis", periodos="2024", filtros={"SMunicípio_de_notificação": picos_filter}
         )),
         ("sinan_hospitalizacao", dict(
             url="http://tabnet.datasus.gov.br/cgi/deftohtm.exe?sinannet/cnv/denguebpi.def",
             output_path=os.path.join(shared_data_dir, "sinan_hospitalizacao.csv"),
-            linha="Município de notificação", coluna="Ocorreu hospitalização", incremento="Casos_Prováveis", periodos="2024"
+            linha="Mês notificação", coluna="Ocorreu hospitalização", incremento="Casos_Prováveis", periodos="2024", filtros={"SMunicípio_de_notificação": picos_filter}
         ))
     ]
 
@@ -90,8 +92,8 @@ async def test_01_fetch_dados(shared_data_dir):
         ("pni_doses", dict(
             url="http://tabnet.datasus.gov.br/cgi/dhdat.exe?bd_pni/dpnibr.def",
             output_path=os.path.join(shared_data_dir, "pni_doses.csv"),
-            linha="Município", coluna="--Não-Ativa--", incremento="Doses_aplicadas|QT_DOSE", periodos="2022",
-            filtros={"SUnidade da Federação": "Piauí"}
+            linha="Ano/mês", coluna="--Não-Ativa--", incremento="Doses_aplicadas|QT_DOSE", periodos="2022", 
+            filtros={"SMunicípio": picos_filter, "SUnidade da Federação": "Piauí"}
         ))
     ]
 

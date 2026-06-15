@@ -87,6 +87,11 @@ class DatasusTabnetScraper:
             selector,
             """
             (selectEl, queries) => {
+                // Desmarca tudo primeiro
+                Array.from(selectEl.options).forEach(opt => {
+                    opt.selected = false;
+                });
+                
                 const selected = [];
                 // 1st pass: exact value or exact text match
                 Array.from(selectEl.options).forEach(opt => {
@@ -308,42 +313,54 @@ def parse_tabnet_csv(csv_path: str) -> pd.DataFrame:
     
     for idx, line in enumerate(lines):
         clean_line = line.strip().replace('"', '')
-        # Matches headers containing 'municipio' / 'município' and a semicolon
-        if header_idx == -1 and ("municipio" in clean_line.lower() or "município" in clean_line.lower()) and ";" in clean_line:
-            header_idx = idx
+        # The header is usually the first line with a semicolon that represents columns
+        if header_idx == -1 and ";" in clean_line:
+            # Let's verify if it's a valid header by checking the number of columns
+            if len(clean_line.split(";")) > 1:
+                header_idx = idx
         elif clean_line.startswith("Total;") or clean_line.startswith("Total"):
             total_idx = idx
             break
             
     if header_idx == -1:
-        raise ValueError("Linha de cabeçalho 'Município' não encontrada no CSV do Tabnet.")
+        raise ValueError("Linha de cabeçalho não encontrada no CSV do Tabnet.")
         
     # Slices the CSV rows
     data_lines = lines[header_idx:total_idx] if total_idx != -1 else lines[header_idx:]
     
     csv_data = "".join(data_lines)
+    from io import StringIO
     df = pd.read_csv(StringIO(csv_data), sep=";", encoding="latin1")
     
-    # Clean the first column (Municípios)
-    mun_col = df.columns[0]
+    # Clean the first column
+    first_col = df.columns[0]
     
-    def split_mun(val):
-        if pd.isna(val):
-            return None, None
-        val_str = str(val).strip()
-        # Splits 6 digits code from name (e.g. "220800 PICOS")
-        match = re.match(r"^(\d{6})\s+(.*)$", val_str)
-        if match:
-            return match.group(1), match.group(2)
-        return None, val_str
+    if not df.empty:
+        first_val = str(df[first_col].iloc[0]).strip()
+        is_municipio = bool(re.match(r"^\d{6}\s", first_val)) or "municipio" in first_col.lower() or "município" in first_col.lower()
+    else:
+        is_municipio = "municipio" in first_col.lower() or "município" in first_col.lower()
+    
+    if is_municipio:
+        def split_mun(val):
+            if pd.isna(val):
+                return None, None
+            val_str = str(val).strip()
+            # Splits 6 digits code from name (e.g. "220800 PICOS")
+            match = re.match(r"^(\d{6})\s+(.*)$", val_str)
+            if match:
+                return match.group(1), match.group(2)
+            return None, val_str
+            
+        splits = df[first_col].apply(split_mun)
+        df["cod_ibge"] = [s[0] for s in splits]
+        df["municipio"] = [s[1] for s in splits]
         
-    splits = df[mun_col].apply(split_mun)
-    df["cod_ibge"] = [s[0] for s in splits]
-    df["municipio"] = [s[1] for s in splits]
-    
-    # Reorganize column order
-    cols = ["cod_ibge", "municipio"] + [c for c in df.columns if c not in ["cod_ibge", "municipio", mun_col]]
-    df = df[cols]
+        # Reorganize column order
+        cols = ["cod_ibge", "municipio"] + [c for c in df.columns if c not in ["cod_ibge", "municipio", first_col]]
+        df = df[cols]
+    else:
+        df.rename(columns={first_col: "periodo"}, inplace=True)
     
     # Process numeric columns (clean thousands separators and decimal markers)
     for col in df.columns[2:]:

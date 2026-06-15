@@ -85,13 +85,13 @@ def test_parse_tabnet_csv():
 def test_parse_tabnet_csv_no_header():
     from scrap_indicadores.scraper_navegador import parse_tabnet_csv
     
-    raw_content = "Some;random;content\nwithout;any;special;keyword\n"
+    raw_content = "Some random content without any special keyword\nand no semicolons at all\n"
     with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv", encoding="latin1") as tmp:
         tmp.write(raw_content)
         tmp_path = tmp.name
         
     try:
-        with pytest.raises(ValueError, match="Linha de cabeçalho 'Município' não encontrada"):
+        with pytest.raises(ValueError, match="Linha de cabeçalho não encontrada no CSV do Tabnet."):
             parse_tabnet_csv(tmp_path)
     finally:
         os.remove(tmp_path)

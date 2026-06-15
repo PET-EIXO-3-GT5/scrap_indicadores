@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 import os
 import pytest
+import pandas as pd
 from scrap_indicadores.scraper_navegador import parse_tabnet_csv
 from scrap_indicadores.picos_indicators import calculate_picos_indicators
 
@@ -30,53 +32,83 @@ def test_02_verificar_dados(shared_data_dir):
     indicadores = calculate_picos_indicators(dfs, picos_code=picos_code)
     
     # 1. Validação SIM
-    sim = indicadores.get("sim", {})
-    assert sim.get("obitos_total") == 621
-    assert sim.get("obitos_mulheres_idade_fertil") == 135
-    assert sim.get("obitos_maternos") == 0
-    assert sim.get("obitos_infantis") == 14
+    sim = indicadores.get("sim", [])
+    assert len(sim) > 0, "SIM vazio"
+    
+    # Encontra as linhas totalizadoras anuais (2024 para geral, 2023 para materno)
+    sim_2024 = next((item for item in sim if item["periodo"] == "2024"), {})
+    sim_2023 = next((item for item in sim if item["periodo"] == "2023"), {})
+    
+    assert sim_2024.get("obitos_total") == 621
+    assert sim_2024.get("obitos_mulheres_idade_fertil") == 135
+    assert sim_2023.get("obitos_maternos") == 1
+    assert sim_2024.get("obitos_infantis") == 14
 
     # 2. Validação SIH
-    sih = indicadores.get("sih", {})
-    assert sih.get("internacoes_total") == 3877
-    assert sih.get("internacoes_infantis") == 3877
+    sih = indicadores.get("sih", [])
+    assert len(sih) > 0, "SIH vazio"
     
-    causas_infantis = sih.get("principais_causas_internacao_infantil", {})
-    assert causas_infantis.get("Cap 15") == 693
-    assert causas_infantis.get("Cap 10") == 555
-    assert causas_infantis.get("Cap 19") == 544
-    assert causas_infantis.get("Cap 11") == 516
-    assert causas_infantis.get("Cap 01") == 447
+    sih_2024 = next((item for item in sih if item["periodo"] == "2024"), {})
+    
+    assert sih_2024.get("internacoes_total") == 3798
+    assert sih_2024.get("internacoes_infantis") == 457
+    
+    causas = sih_2024.get("principais_causas_internacao_infantil", {})
+    assert causas.get("Cap 16") == 152
+    assert causas.get("Cap 10") == 86
+    assert causas.get("Cap 01") == 55
 
     # 3. Validação SINAN (Dengue)
-    sinan = indicadores.get("sinan", {})
-    assert sinan.get("casos_dengue_notificados") == 78
-    assert sinan.get("hospitalizacoes") == 18
-    assert sinan.get("obitos") == 0
+    # O SINAN retorna dados mensais (sem linha totalizadora anual),
+    # então agregamos todos os períodos para obter os totais.
+    sinan = indicadores.get("sinan", [])
+    assert len(sinan) > 0, "SINAN vazio"
     
-    classificacao = sinan.get("classificacao_final", {})
-    assert classificacao.get("Dengue") == 72
-    assert classificacao.get("Dengue com sinais de alarme") == 5
-    assert classificacao.get("Dengue grave") == 1
+    total_casos = sum(item.get("casos_dengue_notificados", 0) for item in sinan)
+    total_hosp = sum(item.get("hospitalizacoes", 0) for item in sinan)
+    total_obitos = sum(item.get("obitos", 0) for item in sinan)
+    
+    assert total_casos == 61
+    assert total_hosp == 16
+    assert total_obitos == 1
+
+    # Agregar distribuições de todos os meses
+    from collections import Counter
+    class_total = Counter()
+    criterio_total = Counter()
+    evolucao_total = Counter()
+    hospitalizacao_total = Counter()
+    
+    for item in sinan:
+        for k, v in item.get("classificacao_final", {}).items():
+            class_total[k] += v
+        for k, v in item.get("criterio_confirmacao", {}).items():
+            criterio_total[k] += v
+        for k, v in item.get("evolucao", {}).items():
+            evolucao_total[k] += v
+        for k, v in item.get("hospitalizacao", {}).items():
+            hospitalizacao_total[k] += v
+            
+    assert class_total.get("Dengue") == 56
+    assert class_total.get("Dengue com sinais de alarme") == 5
     
     # Busca segura por chaves contendo caracteres problemáticos de encoding do CSV
-    criterio = sinan.get("criterio_confirmacao", {})
-    if criterio:
-        # Pega a chave que parece com Laboratorial e valida que o valor é 78
-        laboratorial_keys = [k for k in criterio.keys() if "Laborat" in k]
+    if criterio_total:
+        laboratorial_keys = [k for k in criterio_total.keys() if "Laborat" in k]
         if laboratorial_keys:
-            assert criterio[laboratorial_keys[0]] == 78
+            assert criterio_total[laboratorial_keys[0]] == 61
             
-    evolucao = sinan.get("evolucao", {})
-    assert evolucao.get("Cura") == 76
-    # Validando ignorado e óbito por outras causas
-    assert any(v == 1 and "Ign" in k for k, v in evolucao.items())
-    assert any(v == 1 and "bito por outra causa" in k for k, v in evolucao.items())
+    assert evolucao_total.get("Cura") == 59
+    assert any(v == 1 and "Ign" in k for k, v in evolucao_total.items())
+    assert any(v == 1 and "bito por outra causa" in k for k, v in evolucao_total.items())
     
-    hospitalizacao = sinan.get("hospitalizacao", {})
-    assert any(v == 60 and "N" in k for k, v in hospitalizacao.items())
-    assert hospitalizacao.get("Sim") == 18
+    assert any(v == 45 and "N" in k for k, v in hospitalizacao_total.items())
+    assert hospitalizacao_total.get("Sim") == 16
 
     # 4. Validação PNI
-    pni = indicadores.get("pni", {})
-    assert pni.get("registros_vacinacao") == 41964
+    # O PNI retorna dados mensais (ex: "2022/Jan"), então somamos todos.
+    pni = indicadores.get("pni", [])
+    assert len(pni) > 0, "PNI vazio"
+    
+    pni_total = sum(item.get("registros_vacinacao", 0) for item in pni)
+    assert pni_total == 41964
