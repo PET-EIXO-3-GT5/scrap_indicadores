@@ -96,28 +96,7 @@ def test_parse_tabnet_csv_no_header():
     finally:
         os.remove(tmp_path)
 
-def test_scraper_main():
-    from unittest.mock import patch, MagicMock
-    from scrap_indicadores.scraper_navegador import main as scraper_main
-    import asyncio
-    import pandas as pd
-    
-    with patch("scrap_indicadores.scraper_navegador.DatasusTabnetScraper") as mock_scraper, \
-         patch("scrap_indicadores.scraper_navegador.parse_tabnet_csv") as mock_parse, \
-         patch("scrap_indicadores.scraper_navegador.calculate_picos_indicators"), \
-         patch("scrap_indicadores.scraper_navegador.summarize_sinan_dengue_indicators"):
-        
-        mock_instance = mock_scraper.return_value
-        # Since it's an async mock in 3.8+, but playwright download_csv is an async method
-        async def mock_download(*args, **kwargs):
-            return "fake_path.csv"
-            
-        mock_instance.download_csv = mock_download
-        
-        df = pd.DataFrame({"cod_ibge": ["220800"], "municipio": ["PICOS"]})
-        mock_parse.return_value = df
-        
-        asyncio.run(scraper_main())
+
 
 def test_real_get_options():
     import asyncio

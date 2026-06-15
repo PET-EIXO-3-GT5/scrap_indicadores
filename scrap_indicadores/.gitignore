@@ -10,3 +10,5 @@ wheels/
 .venv
 
 /dados_scraped
+test_output
+.pytest_cache

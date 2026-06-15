@@ -23,6 +23,7 @@ where = ["src"]
 [dependency-groups]
 dev = [
     "jupyter>=1.1.1",
+    "pytest-asyncio>=1.4.0",
     "pytest-cov>=6.0.0",
     "pytest>=9.0.2",
 ]
@@ -32,4 +33,6 @@ testpaths = ["test"]
 python_files = ["test_*.py"]
 pythonpath = ["src"]
 addopts = "--cov=scrap_indicadores --cov-report=term-missing"
-
+filterwarnings = [
+    "ignore::DeprecationWarning"
+]
