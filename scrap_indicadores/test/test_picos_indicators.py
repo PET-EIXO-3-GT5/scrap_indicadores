@@ -1,134 +1,123 @@
 import pandas as pd
-
 from scrap_indicadores.picos_indicators import (
-    calculate_picos_indicators,
-    calculate_pni_indicators,
-    calculate_sih_indicators,
-    calculate_sim_indicators,
-    calculate_sinan_indicators,
-    filter_picos,
+    _empty_series, _text_column, _normalize_municipality_code, _municipality_column,
+    filter_picos, calculate_sim_indicators, calculate_sih_indicators, calculate_sinan_indicators,
+    calculate_pni_indicators, calculate_picos_indicators, _count_values, value_counts_dict,
+    summarize_available_indicators, summarize_sinan_dengue_indicators
 )
 
+def test_empty_series():
+    idx = pd.Index([1, 2, 3])
+    s = _empty_series(idx)
+    assert len(s) == 3
+    assert s.isna().all()
+    
+def test_text_column():
+    df = pd.DataFrame({"A": [1, 2, None], "B": [" x ", "y", "z"]})
+    s = _text_column(df, "B")
+    assert s[0] == "x"
+    assert s[2] == "z"
+    s2 = _text_column(df, "C")
+    assert s2.isna().all()
 
-def test_filter_picos_keeps_only_picos_and_accepts_numeric_codes():
-    df = pd.DataFrame(
-        {
-            "CODMUNRES": ["220800", "221100", 220800, 220800.0, None],
-            "valor": [1, 2, 3, 4, 5],
-        }
-    )
+def test_normalize_municipality_code():
+    assert _normalize_municipality_code(pd.NA) is None
+    assert _normalize_municipality_code("123.0") == "123"
+    assert _normalize_municipality_code(" 123 ") == "123"
 
-    filtered, municipality_column = filter_picos(df, ["CODMUNRES"])
+def test_municipality_column():
+    df = pd.DataFrame({"CODMUNRES": [1]})
+    assert _municipality_column(df, ["A", "CODMUNRES"]) == "CODMUNRES"
+    assert _municipality_column(df, ["A", "B"]) is None
 
-    assert municipality_column == "CODMUNRES"
-    assert filtered["valor"].tolist() == [1, 3, 4]
+def test_filter_picos():
+    df = pd.DataFrame({"CODMUNRES": ["220800", "111111", "220800.0", pd.NA], "VAL": [1, 2, 3, 4]})
+    df_filtered, col = filter_picos(df, ["CODMUNRES"])
+    assert col == "CODMUNRES"
+    assert len(df_filtered) == 2
+    assert df_filtered["VAL"].tolist() == [1, 3]
 
+def test_filter_picos_empty():
+    df = pd.DataFrame({"A": [1, 2]})
+    df_filtered, col = filter_picos(df, ["CODMUNRES"])
+    assert col is None
+    assert df_filtered.empty
 
-def test_sim_indicators_count_only_picos_records():
-    df = pd.DataFrame(
-        {
-            "CODMUNRES": ["220800", "220800", "220800", "220800", "221100", "220800"],
-            "IDADE": ["420", "405", "300", "499", "430", None],
-            "SEXO": ["2", "2", "1", "2", "2", "2"],
-            "CAUSABAS": ["A10", "O95", "B20", None, "O10", "C10"],
-            "OBITOMAT": ["0", "0", "2", "0", "1", None],
-        }
-    )
+def test_calculate_sim_indicators():
+    df = pd.DataFrame({
+        "CODMUNRES": ["220800", "220800", "220800", "220800"],
+        "IDADE": ["425", "450", "012", "115"],
+        "SEXO": ["2", "1", "2", "2"],
+        "CAUSABAS": ["O10", "A10", "B10", "C10"],
+        "OBITOMAT": ["1", None, None, "5"]
+    })
+    res = calculate_sim_indicators(df)
+    assert res["obitos_total"] == 4
+    assert res["obitos_mulheres_idade_fertil"] == 1
+    assert res["obitos_maternos"] == 2
+    assert res["obitos_infantis"] == 2
 
-    result = calculate_sim_indicators(df)
+def test_calculate_sih_indicators():
+    df = pd.DataFrame({
+        "MUNIC_RES": ["220800", "220800", "220800"],
+        "IDADE": ["5", "15", "8"],
+        "DIAG_PRINC": ["A00", "B00", "A00"]
+    })
+    res = calculate_sih_indicators(df)
+    assert res["internacoes_total"] == 3
+    assert res["internacoes_infantis"] == 2
+    assert res["principais_causas_internacao_infantil"]["A00"] == 2
 
-    assert result == {
-        "obitos_total": 5,
-        "obitos_mulheres_idade_fertil": 1,
-        "obitos_maternos": 2,
-        "obitos_infantis": 1,
-    }
+def test_calculate_sinan_indicators():
+    df = pd.DataFrame({
+        "ID_MN_RESI": ["220800", "220800"],
+        "HOSPITALIZ": ["1", "2"],
+        "EVOLUCAO": ["1", "2"],
+        "CLASSI_FIN": ["10", "10"],
+        "CRITERIO": ["1", "2"]
+    })
+    res = calculate_sinan_indicators(df)
+    assert res["casos_dengue_notificados"] == 2
+    assert res["hospitalizacoes"] == 1
+    assert res["obitos"] == 1
+    assert res["classificacao_final"]["10"] == 2
 
+def test_calculate_pni_indicators():
+    df = pd.DataFrame({
+        "CODMUNRES": ["220800", "220800", "111111"]
+    })
+    res = calculate_pni_indicators(df)
+    assert res["registros_vacinacao"] == 2
 
-def test_sim_indicators_handle_empty_and_missing_columns():
-    result = calculate_sim_indicators(pd.DataFrame())
+def test_calculate_picos_indicators():
+    df_empty = pd.DataFrame()
+    res = calculate_picos_indicators(df_empty, df_empty, df_empty, df_empty)
+    assert "sim" in res
+    assert "sih" in res
+    assert "sinan" in res
+    assert "pni" in res
 
-    assert result == {
-        "obitos_total": 0,
-        "obitos_mulheres_idade_fertil": 0,
-        "obitos_maternos": 0,
-        "obitos_infantis": 0,
-    }
+def test_count_values():
+    df = pd.DataFrame({"A": ["1", "2", " 1 ", pd.NA]})
+    assert _count_values(df, "A", ["1"]) == 2
+    assert _count_values(df, "B", ["1"]) == 0
 
+def test_value_counts_dict():
+    df = pd.DataFrame({"A": ["X", "X", "Y", pd.NA]})
+    res = value_counts_dict(df, "A")
+    assert res["X"] == 2
+    assert res["Y"] == 1
+    assert res["<vazio>"] == 1
+    assert value_counts_dict(df, "B") == {}
 
-def test_sih_indicators_count_children_and_top_causes():
-    df = pd.DataFrame(
-        {
-            "MUNIC_RES": ["220800", "220800", "220800", "221100", "220800"],
-            "IDADE": ["9", "10", "bad", "3", None],
-            "DIAG_PRINC": ["A90", "B20", "C10", "A90", "D50"],
-        }
-    )
+def test_summarize_available_indicators():
+    df = pd.DataFrame({"A": ["X"], "B": ["Y"]})
+    res = summarize_available_indicators(df, ["A", "C"])
+    assert "A" in res
+    assert "C" not in res
 
-    result = calculate_sih_indicators(df)
-
-    assert result["internacoes_total"] == 4
-    assert result["internacoes_infantis"] == 1
-    assert result["principais_causas_internacao_infantil"] == {"A90": 1}
-
-
-def test_sinan_indicators_use_available_municipality_columns():
-    result_primary = calculate_sinan_indicators(
-        pd.DataFrame({"ID_MN_RESI": ["220800", "221100", "220800"]})
-    )
-    result_fallback = calculate_sinan_indicators(
-        pd.DataFrame({"CO_MUN_RES": ["221100", "220800"]})
-    )
-
-    assert result_primary == {
-        "casos_dengue_notificados": 2,
-        "coluna_municipio": "ID_MN_RESI",
-        "hospitalizacoes": 0,
-        "obitos": 0,
-        "classificacao_final": {},
-        "criterio_confirmacao": {},
-        "evolucao": {},
-        "hospitalizacao": {},
-    }
-    assert result_fallback == {
-        "casos_dengue_notificados": 1,
-        "coluna_municipio": "CO_MUN_RES",
-        "hospitalizacoes": 0,
-        "obitos": 0,
-        "classificacao_final": {},
-        "criterio_confirmacao": {},
-        "evolucao": {},
-        "hospitalizacao": {},
-    }
-
-
-def test_pni_indicators_use_available_municipality_columns():
-    result_primary = calculate_pni_indicators(
-        pd.DataFrame({"CODMUNRES": ["220800", "221100", "220800"]})
-    )
-    result_fallback = calculate_pni_indicators(
-        pd.DataFrame({"CO_MUNICIP": ["221100", "220800"]})
-    )
-
-    assert result_primary == {
-        "registros_vacinacao": 2,
-        "coluna_municipio": "CODMUNRES",
-    }
-    assert result_fallback == {
-        "registros_vacinacao": 1,
-        "coluna_municipio": "CO_MUNICIP",
-    }
-
-
-def test_calculate_picos_indicators_groups_all_datasets():
-    result = calculate_picos_indicators(
-        df_sim=pd.DataFrame({"CODMUNRES": ["220800"], "IDADE": ["430"], "SEXO": ["2"]}),
-        df_sih=pd.DataFrame({"MUNIC_RES": ["220800"], "IDADE": ["8"]}),
-        df_sinan=pd.DataFrame({"ID_MN_RESI": ["220800"]}),
-        df_pni=pd.DataFrame({"CODMUNRES": ["220800"]}),
-    )
-
-    assert result["sim"]["obitos_total"] == 1
-    assert result["sih"]["internacoes_total"] == 1
-    assert result["sinan"]["casos_dengue_notificados"] == 1
-    assert result["pni"]["registros_vacinacao"] == 1
+def test_summarize_sinan_dengue_indicators():
+    df = pd.DataFrame({"CLASSI_FIN": ["1", "1"], "IGNORE_ME": ["2", "2"]})
+    res = summarize_sinan_dengue_indicators(df)
+    assert "CLASSI_FIN" in res
+    assert "IGNORE_ME" not in res

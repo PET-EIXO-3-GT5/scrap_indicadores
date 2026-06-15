@@ -1,9 +1,5 @@
-from importlib.metadata import version
-
-
 def main():
-    pysus_version = version("pysus")
-    print(f"PySUS instalado. Versao: {pysus_version}")
+    print("Iniciando a extração de dados...")
 
 if __name__ == "__main__":
     main()

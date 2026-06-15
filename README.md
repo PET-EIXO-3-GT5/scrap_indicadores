@@ -13,7 +13,13 @@ Projeto Python com `uv` usando `PySUS` (fonte GitHub) e pipeline de CI/CD para G
 ```bash
 cd scrap_indicadores
 uv sync
-PYTHONPATH=src uv run python -m scrap_indicadores.main
+uv run --directory . python -m scrap_indicadores.main
+```
+
+Para usar o scraper de navegador pela primeira vez, baixe o Chromium do Playwright:
+
+```bash
+uv run --directory . playwright install chromium
 ```
 
 ## Rodar com Docker

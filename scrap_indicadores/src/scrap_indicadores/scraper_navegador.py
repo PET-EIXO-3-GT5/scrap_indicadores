@@ -6,6 +6,8 @@ from io import StringIO
 import pandas as pd
 from playwright.async_api import async_playwright
 
+from scrap_indicadores.picos_indicators import calculate_picos_indicators, summarize_sinan_dengue_indicators
+
 class DatasusTabnetScraper:
     """
     A robust web scraper for DATASUS TabNet tables utilizing Playwright.
@@ -365,6 +367,10 @@ async def main():
     """
     scraper = DatasusTabnetScraper(headless=True)
     picos_code = "220800"
+    df_sim = pd.DataFrame()
+    df_sih = pd.DataFrame()
+    df_sinan = pd.DataFrame()
+    df_pni = pd.DataFrame()
     
     # Directory to save the scraped CSVs
     data_dir = "./dados_scraped"
@@ -446,6 +452,25 @@ async def main():
         print(f"Resultados PNI Doses 2022 para Picos:\n{picos_pni.to_string(index=False)}")
     except Exception as e:
         print(f"Erro no download/parse do PNI: {e}")
+
+    try:
+        indicadores = calculate_picos_indicators(df_sim, df_sih, df_sinan, df_pni, picos_code=picos_code)
+        resumo_sinan = summarize_sinan_dengue_indicators(df_sinan)
+
+        print("\n--- [INDICADORES] Resumo consolidado de Picos ---")
+        for base, valores in indicadores.items():
+            print(f"[{base.upper()}]")
+            for indicador, valor in valores.items():
+                if indicador == "coluna_municipio":
+                    continue
+                print(f"- {indicador}: {valor}")
+
+        if resumo_sinan:
+            print("\n--- [SINAN] Distribuições adicionais ---")
+            for coluna, valores in resumo_sinan.items():
+                print(f"{coluna}: {valores}")
+    except Exception as e:
+        print(f"Erro ao consolidar indicadores de Picos: {e}")
 
     print("\n=======================================================")
     print("PROCESSO DE EXECUÇÃO DE TESTE CONCLUÍDO")

@@ -1,10 +1,14 @@
-.PHONY: all test browser
+.PHONY: all test browser browser-setup
 
 all:
-	PYTHONPATH=src uv run python -m scrap_indicadores.main
+	uv run --directory . python -m scrap_indicadores.main
 
 test:
-	PYTHONPATH=src uv run pytest
+	uv run --directory . python -m coverage erase
+	uv run --directory . pytest
 
-browser:
-	PYTHONPATH=src uv run python -m scrap_indicadores.scraper_navegador
+browser: browser-setup
+	uv run --directory . python -m scrap_indicadores.scraper_navegador
+
+browser-setup:
+	uv run --directory . playwright install chromium

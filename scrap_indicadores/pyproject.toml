@@ -8,20 +8,28 @@ dependencies = [
     "httpx>=0.28.1",
     "pandas>=2.3.3",
     "playwright>=1.60.0",
-    "pyarrow>=24.0.0",
-    "pysus",
 ]
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [dependency-groups]
 dev = [
     "jupyter>=1.1.1",
+    "pytest-cov>=6.0.0",
     "pytest>=9.0.2",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
-python_files = ["test_picos_*.py"]
+python_files = ["test_*.py"]
 pythonpath = ["src"]
+addopts = "--cov=scrap_indicadores --cov-report=term-missing"
 
-[tool.uv.sources]
-pysus = { git = "https://github.com/AlertaDengue/PySUS.git" }
