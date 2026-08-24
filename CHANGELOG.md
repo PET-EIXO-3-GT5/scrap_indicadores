@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.1](https://github.com/PET-EIXO-3-GT5/scrap_indicadores/compare/v0.1.0...v0.1.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **deps:** update uv.lock for package=false ([5662568](https://github.com/PET-EIXO-3-GT5/scrap_indicadores/commit/56625680e5147f28bc9ec994daaed8e7b6924b1b))
+* **docker:** configure package=false and run playwright install after copy ([06404d3](https://github.com/PET-EIXO-3-GT5/scrap_indicadores/commit/06404d3603df42e613115212f1714a573239f421))
+* **docker:** use --no-install-project before copying app code in Dockerfile ([77485bd](https://github.com/PET-EIXO-3-GT5/scrap_indicadores/commit/77485bd409eb9d1eaa5d30baa28bfe64057bfe81))
+
 ## 0.1.0 (2026-08-24)
 
 
