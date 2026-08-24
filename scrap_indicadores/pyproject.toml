@@ -38,3 +38,7 @@ addopts = "--cov=scrap_indicadores --cov-report=term-missing"
 filterwarnings = [
     "ignore::DeprecationWarning"
 ]
+
+[tool.uv]
+package = false
+

@@ -9,13 +9,14 @@ RUN apt-get update \
 
 # Copia apenas os arquivos de dependencias primeiro para aproveitar cache.
 COPY scrap_indicadores/pyproject.toml scrap_indicadores/uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project && uv run playwright install --with-deps chromium
+RUN uv sync --frozen --no-dev
 
 # Copia o codigo da aplicacao.
 COPY scrap_indicadores/ ./
-RUN uv sync --frozen --no-dev
+RUN uv run playwright install --with-deps chromium
 
 EXPOSE 8000
+
 
 CMD ["uv", "run", "python", "-m", "scrap_indicadores.main"]
 
