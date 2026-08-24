@@ -24,6 +24,11 @@ jobs:
         working-directory: scrap_indicadores
         run: uv sync
 
+      - name: Install Playwright browsers
+        working-directory: scrap_indicadores
+        run: uv run playwright install --with-deps chromium
+
       - name: Run tests
         working-directory: scrap_indicadores
         run: uv run pytest
+
