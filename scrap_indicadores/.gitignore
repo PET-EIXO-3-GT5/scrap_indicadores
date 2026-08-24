@@ -12,4 +12,7 @@ wheels/
 /dados_scraped
 test_output
 .pytest_cache
+.coverage
 .cache_datasus
+.env
+**/.env

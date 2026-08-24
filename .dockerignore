@@ -1,9 +1,11 @@
 .git
 .gitignore
 .venv
-__pycache__
-*.pyc
-*.pyo
-*.pyd
+**/__pycache__
+**/*.py[cod]
 *.log
-c
+.env
+**/.env
+.pytest_cache
+.coverage
+.cache_datasus
